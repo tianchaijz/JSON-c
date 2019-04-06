@@ -26,13 +26,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <stdlib.h>
 #include "JSON_checker.h"
 
 #define TRUE  1
 #define FALSE 0
-#define GOOD 0xBABAB00E
 #define __   -1     /* the universal error code */
+
+static int GOOD = 0xBABAB00E;
 
 /*
     Characters are mapped into these 31 character classes. This allows for
@@ -194,25 +194,17 @@ enum modes {
     MODE_OBJECT
 };
 
-static void
-destroy(JSON_checker jc)
+static inline void
+invalid(JSON_checker jc)
 {
-/*
-    Delete the JSON_checker object.
-*/
     jc->valid = 0;
-    free((void*)jc->stack);
-    free((void*)jc);
 }
 
 
 static int
 reject(JSON_checker jc)
 {
-/*
-    Delete the JSON_checker object.
-*/
-    destroy(jc);
+    invalid(jc);
     return FALSE;
 }
 
@@ -247,8 +239,26 @@ pop(JSON_checker jc, int mode)
 }
 
 
+static inline void
+reset(JSON_checker jc)
+{
+    jc->valid = GOOD;
+    jc->state = GO;
+    jc->top = -1;
+    memset(jc->stack, 0, jc->depth * sizeof(int));
+    push(jc, MODE_DONE);
+}
+
+
+void
+JSON_checker_reset(JSON_checker jc)
+{
+    reset(jc);
+}
+
+
 JSON_checker
-new_JSON_checker(int depth)
+JSON_checker_new(int depth)
 {
 /*
     new_JSON_checker starts the checking process by constructing a JSON_checker
@@ -263,13 +273,22 @@ new_JSON_checker(int depth)
     JSON_checker_char will delete the JSON_checker object if it sees an error.
 */
     JSON_checker jc = (JSON_checker)malloc(sizeof(struct JSON_checker_struct));
-    jc->valid = GOOD;
-    jc->state = GO;
     jc->depth = depth;
-    jc->top = -1;
-    jc->stack = (int*)calloc(depth, sizeof(int));
-    push(jc, MODE_DONE);
+    jc->stack = (int*)malloc(depth * sizeof(int));
+    reset(jc);
     return jc;
+}
+
+
+void
+JSON_checker_destory(JSON_checker jc)
+{
+/*
+    Delete the JSON_checker object.
+*/
+    invalid(jc);
+    free((void*)jc->stack);
+    free((void*)jc);
 }
 
 
@@ -415,7 +434,26 @@ JSON_checker_done(JSON_checker jc)
     if (jc->valid != GOOD) {
         return FALSE;
     }
-    int result = jc->state == OK && pop(jc, MODE_DONE);
-    destroy(jc);
-    return result;
+    return jc->state == OK && pop(jc, MODE_DONE);
+}
+
+
+int
+JSON_checker_check(JSON_checker jc, const char *s, size_t len)
+{
+    size_t i;
+    int next_char;
+
+    for (i = 0; i < len; ++i) {
+        next_char = s[i];
+        /* Work around for non-ASCII chars */
+        if (next_char < 0) {
+            next_char = 0x20;
+        }
+
+        if (!JSON_checker_char(jc, next_char)) {
+            return FALSE;
+        }
+    }
+    return JSON_checker_done(jc);
 }

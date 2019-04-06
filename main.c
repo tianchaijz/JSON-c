@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 
     jc will contain a JSON_checker with a maximum depth of 20.
 */
-    JSON_checker jc = new_JSON_checker(20);
+    JSON_checker jc = JSON_checker_new(20);
     for (;;) {
         int next_char = getchar();
         if (next_char <= 0) {

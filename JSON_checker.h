@@ -2,6 +2,11 @@
 
 /* 2016-11-11 */
 
+#include <stdlib.h>
+#include <stddef.h>
+#include <string.h>
+
+
 /*
     The JSON_checker_struct is used to hold the state of the JSON_checker
     so that the code can be reentrant.
@@ -16,7 +21,7 @@ typedef struct JSON_checker_struct {
 } * JSON_checker;
 
 
-extern JSON_checker new_JSON_checker(int depth);
+extern JSON_checker JSON_checker_new(int depth);
 
 /*
     Make a new JSON_checker. You indicate the maximum depth that is allowed.
@@ -37,3 +42,7 @@ extern int JSON_checker_done(JSON_checker jc);
     When there are no more JSON text characters, call JSON_checker_done.
     It will return false if the text was not right.
 */
+
+extern void JSON_checker_reset(JSON_checker jc);
+extern void JSON_checker_destory(JSON_checker jc);
+extern int JSON_checker_check(JSON_checker jc, const char *s, size_t len);
