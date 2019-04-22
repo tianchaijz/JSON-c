@@ -1,35 +1,9 @@
-local ffi = require "ffi"
 local cjson = require "cjson.safe"
+local jsonc = require "json_checker"
 
 
-ffi.cdef[[
-typedef struct JSON_checker_struct {
-    int valid;
-    int state;
-    int depth;
-    int top;
-    int* stack;
-} * JSON_checker;
+local check_json = jsonc.check
 
-JSON_checker JSON_checker_new(int depth);
-void JSON_checker_reset(JSON_checker jc);
-void JSON_checker_destory(JSON_checker jc);
-int JSON_checker_check(JSON_checker jc, const char *buf, size_t len);
-]]
-
-
-local libjc = ffi.load("./libjsonchecker.so")
-
-local jc = ffi.gc(libjc.JSON_checker_new(20), libjc.JSON_checker_destory)
-
-
-local function check_json(s)
-    libjc.JSON_checker_reset(jc)
-    return libjc.JSON_checker_check(jc, s, #s) == 1
-end
-
-
-assert(jc)
 
 assert(check_json(cjson.encode({})))
 assert(check_json(" { } \n"))
